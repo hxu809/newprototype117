@@ -105,3 +105,29 @@ p {
     cursor: grabbing;
     transform: scale(1.1);
 }
+
+/* Weeknd 图片样式 - 放在右上角，与 CPNTM 大小相同 */
+.weeknd-img {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    max-width: 30%;
+    max-height: 23vh;
+    width: auto;
+    height: auto;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    object-fit: contain;
+    z-index: 10;
+    cursor: move;
+    transition: transform 0.1s ease;
+    user-select: none;
+}
+
+.weeknd-img:hover {
+    transform: scale(1.05);
+}
+
+.weeknd-img:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+}

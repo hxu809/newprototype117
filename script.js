@@ -1,18 +1,38 @@
 // 拖动功能实现
 document.addEventListener('DOMContentLoaded', function() {
     const cpntmImg = document.querySelector('.cpntm-img');
+    const weekndImg = document.querySelector('.weeknd-img');
     const recordPlayerImg = document.querySelector('.record-player-img');
     const musicPlayer = document.getElementById('music-player');
 
-    let isDragging = false;
-    let currentX;
-    let currentY;
-    let initialX;
-    let initialY;
-    let xOffset = 0;
-    let yOffset = 0;
-    let isCpntmHidden = false; // 跟踪cpntm是否被隐藏
+    // 为每个可拖拽元素创建拖拽状态
+    const dragStates = {
+        cpntm: {
+            element: cpntmImg,
+            isDragging: false,
+            currentX: 0,
+            currentY: 0,
+            initialX: 0,
+            initialY: 0,
+            xOffset: 0,
+            yOffset: 0,
+            isHidden: false
+        },
+        weeknd: {
+            element: weekndImg,
+            isDragging: false,
+            currentX: 0,
+            currentY: 0,
+            initialX: 0,
+            initialY: 0,
+            xOffset: 0,
+            yOffset: 0,
+            isHidden: false
+        }
+    };
+
     let isMusicLoaded = false; // 跟踪音乐是否已加载到唱片机
+    let currentDraggingKey = null; // 当前正在拖拽的元素key
 
     // 调试：检查音频是否可以加载
     console.log('音乐播放器初始化:', musicPlayer);
@@ -35,66 +55,94 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('音乐暂停');
     });
 
-    // 鼠标按下事件
-    cpntmImg.addEventListener('mousedown', dragStart);
+    // 为每个可拖拽元素添加事件监听
+    function setupDraggable(key, element) {
+        if (!element) {
+            console.warn(`元素 ${key} 未找到，跳过拖拽设置`);
+            return;
+        }
+
+        element.addEventListener('mousedown', function(e) {
+            dragStart(e, key);
+        });
+        element.addEventListener('touchstart', function(e) {
+            dragStart(e, key);
+        });
+
+        // 添加过渡效果
+        element.style.transition = 'opacity 0.3s ease';
+    }
+
+    setupDraggable('cpntm', cpntmImg);
+    setupDraggable('weeknd', weekndImg);
+
+    // 全局事件监听
     document.addEventListener('mousemove', drag);
     document.addEventListener('mouseup', dragEnd);
-
-    // 触摸事件（移动设备）
-    cpntmImg.addEventListener('touchstart', dragStart);
     document.addEventListener('touchmove', drag);
     document.addEventListener('touchend', dragEnd);
 
-    function dragStart(e) {
+    function dragStart(e, key) {
+        const state = dragStates[key];
+        if (!state || state.isHidden) return;
+
         if (e.type === 'touchstart') {
-            initialX = e.touches[0].clientX - xOffset;
-            initialY = e.touches[0].clientY - yOffset;
+            state.initialX = e.touches[0].clientX - state.xOffset;
+            state.initialY = e.touches[0].clientY - state.yOffset;
         } else {
-            initialX = e.clientX - xOffset;
-            initialY = e.clientY - yOffset;
+            state.initialX = e.clientX - state.xOffset;
+            state.initialY = e.clientY - state.yOffset;
         }
 
-        if (e.target === cpntmImg) {
-            isDragging = true;
-        }
+        state.isDragging = true;
+        currentDraggingKey = key;
+        console.log(`开始拖动: ${key}`);
     }
 
     function drag(e) {
-        if (isDragging) {
-            e.preventDefault();
+        if (!currentDraggingKey) return;
 
-            if (e.type === 'touchmove') {
-                currentX = e.touches[0].clientX - initialX;
-                currentY = e.touches[0].clientY - initialY;
-            } else {
-                currentX = e.clientX - initialX;
-                currentY = e.clientY - initialY;
-            }
+        const state = dragStates[currentDraggingKey];
+        if (!state.isDragging) return;
 
-            xOffset = currentX;
-            yOffset = currentY;
+        e.preventDefault();
 
-            setTranslate(currentX, currentY, cpntmImg);
+        if (e.type === 'touchmove') {
+            state.currentX = e.touches[0].clientX - state.initialX;
+            state.currentY = e.touches[0].clientY - state.initialY;
+        } else {
+            state.currentX = e.clientX - state.initialX;
+            state.currentY = e.clientY - state.initialY;
         }
+
+        state.xOffset = state.currentX;
+        state.yOffset = state.currentY;
+
+        setTranslate(state.currentX, state.currentY, state.element);
     }
 
     function dragEnd(e) {
-        if (isDragging) {
-            initialX = currentX;
-            initialY = currentY;
-            isDragging = false;
+        if (!currentDraggingKey) return;
 
-            // 检测碰撞
-            if (checkCollision(cpntmImg, recordPlayerImg)) {
-                console.log('碰撞检测：cpntm已放入record player');
-                // 隐藏cpntm
-                cpntmImg.style.opacity = '0';
-                cpntmImg.style.pointerEvents = 'none';
-                isCpntmHidden = true;
-                isMusicLoaded = true;
-                console.log('音乐已加载，可以点击播放器播放音乐');
-            }
+        const state = dragStates[currentDraggingKey];
+        if (!state.isDragging) return;
+
+        state.initialX = state.currentX;
+        state.initialY = state.currentY;
+        state.isDragging = false;
+
+        // 检测碰撞
+        if (checkCollision(state.element, recordPlayerImg)) {
+            console.log(`碰撞检测：${currentDraggingKey} 已放入 record player`);
+            // 隐藏图片
+            state.element.style.opacity = '0';
+            state.element.style.pointerEvents = 'none';
+            state.isHidden = true;
+            isMusicLoaded = true;
+            console.log('音乐已加载，可以点击播放器播放音乐');
         }
+
+        currentDraggingKey = null;
     }
 
     function setTranslate(xPos, yPos, el) {
@@ -128,8 +176,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 musicPlayer.pause();
             }
         } else {
-            console.log('请先将cpntm图片拖动到record player上');
-            alert('请先将cpntm图片拖动到record player上！');
+            console.log('请先将cpntm或weeknd图片拖动到record player上');
+            alert('请先将cpntm或weeknd图片拖动到record player上！');
         }
     });
 
@@ -146,27 +194,30 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // ESC键停止播放并弹出cpntm
+        // ESC键停止播放并弹出所有隐藏的图片
         if (e.code === 'Escape' && isMusicLoaded) {
-            console.log('按下ESC键，弹出cpntm');
+            console.log('按下ESC键，弹出所有图片');
             musicPlayer.pause();
             musicPlayer.currentTime = 0; // 重置到开始
 
-            // 显示cpntm
-            cpntmImg.style.opacity = '1';
-            cpntmImg.style.pointerEvents = 'auto';
-            isCpntmHidden = false;
+            // 显示所有隐藏的图片
+            Object.keys(dragStates).forEach(function(key) {
+                const state = dragStates[key];
+                if (state.isHidden) {
+                    state.element.style.opacity = '1';
+                    state.element.style.pointerEvents = 'auto';
+                    state.isHidden = false;
+                }
+            });
+
             isMusicLoaded = false;
         }
     });
 
-    // 添加过渡效果到cpntm
-    cpntmImg.style.transition = 'opacity 0.3s ease';
-
     console.log('音乐播放器脚本加载完成');
     console.log('使用说明：');
-    console.log('1. 拖动cpntm图片到record player上');
+    console.log('1. 拖动cpntm或weeknd图片到record player上');
     console.log('2. 点击record player播放/暂停音乐');
     console.log('3. 播放时按空格键控制播放/暂停');
-    console.log('4. 按ESC键停止并弹出cpntm');
+    console.log('4. 按ESC键停止并弹出所有图片');
 });
