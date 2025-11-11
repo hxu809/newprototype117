@@ -1,14 +1,17 @@
-// 拖动功能实现
+// 拖动功能实现 - 支持多个图片关联不同音乐
 document.addEventListener('DOMContentLoaded', function() {
     const cpntmImg = document.querySelector('.cpntm-img');
     const weekndImg = document.querySelector('.weeknd-img');
     const recordPlayerImg = document.querySelector('.record-player-img');
-    const musicPlayer = document.getElementById('music-player');
+    const cpntmMusicPlayer = document.getElementById('music-player-cpntm');
+    const weekndMusicPlayer = document.getElementById('music-player-weeknd');
 
-    // 为每个可拖拽元素创建拖拽状态
+    // 为每个可拖拽元素创建拖拽状态，并关联对应的音乐播放器
     const dragStates = {
         cpntm: {
             element: cpntmImg,
+            musicPlayer: cpntmMusicPlayer,
+            musicName: 'We Don\'t Talk Anymore',
             isDragging: false,
             currentX: 0,
             currentY: 0,
@@ -20,6 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         weeknd: {
             element: weekndImg,
+            musicPlayer: weekndMusicPlayer,
+            musicName: 'After Hours',
             isDragging: false,
             currentX: 0,
             currentY: 0,
@@ -31,29 +36,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    let isMusicLoaded = false; // 跟踪音乐是否已加载到唱片机
+    let currentLoadedMusic = null; // 当前加载的音乐类型 ('cpntm' 或 'weeknd')
     let currentDraggingKey = null; // 当前正在拖拽的元素key
 
     // 调试：检查音频是否可以加载
-    console.log('音乐播放器初始化:', musicPlayer);
+    console.log('音乐播放器初始化:');
+    console.log('  - cpntm音乐播放器:', cpntmMusicPlayer);
+    console.log('  - weeknd音乐播放器:', weekndMusicPlayer);
 
-    musicPlayer.addEventListener('loadeddata', function() {
-        console.log('音频文件加载成功');
-    });
+    // 为每个音乐播放器添加事件监听
+    function setupMusicPlayer(key, player, musicName) {
+        if (!player) {
+            console.warn(`音乐播放器 ${key} 未找到`);
+            return;
+        }
 
-    musicPlayer.addEventListener('error', function(e) {
-        console.error('音频加载错误:', e);
-        console.error('错误详情:', musicPlayer.error);
-        alert('音频文件加载失败，请确认 "We_Don\'t_Talk_Anymore.mp3" 文件已上传到项目根目录');
-    });
+        player.addEventListener('loadeddata', function() {
+            console.log(`${musicName} 音频文件加载成功`);
+        });
 
-    musicPlayer.addEventListener('play', function() {
-        console.log('音乐开始播放');
-    });
+        player.addEventListener('error', function(e) {
+            console.error(`${musicName} 音频加载错误:`, e);
+            console.error('错误详情:', player.error);
+        });
 
-    musicPlayer.addEventListener('pause', function() {
-        console.log('音乐暂停');
-    });
+        player.addEventListener('play', function() {
+            console.log(`${musicName} 开始播放`);
+        });
+
+        player.addEventListener('pause', function() {
+            console.log(`${musicName} 暂停`);
+        });
+    }
+
+    setupMusicPlayer('cpntm', cpntmMusicPlayer, 'We Don\'t Talk Anymore');
+    setupMusicPlayer('weeknd', weekndMusicPlayer, 'After Hours');
 
     // 为每个可拖拽元素添加事件监听
     function setupDraggable(key, element) {
@@ -134,12 +151,30 @@ document.addEventListener('DOMContentLoaded', function() {
         // 检测碰撞
         if (checkCollision(state.element, recordPlayerImg)) {
             console.log(`碰撞检测：${currentDraggingKey} 已放入 record player`);
-            // 隐藏图片
+
+            // 停止当前正在播放的音乐
+            if (currentLoadedMusic && dragStates[currentLoadedMusic]) {
+                const prevState = dragStates[currentLoadedMusic];
+                if (prevState.musicPlayer) {
+                    prevState.musicPlayer.pause();
+                    prevState.musicPlayer.currentTime = 0;
+                }
+                // 如果之前有加载的图片，也弹出它
+                if (prevState.isHidden) {
+                    prevState.element.style.opacity = '1';
+                    prevState.element.style.pointerEvents = 'auto';
+                    prevState.isHidden = false;
+                }
+            }
+
+            // 隐藏当前拖入的图片
             state.element.style.opacity = '0';
             state.element.style.pointerEvents = 'none';
             state.isHidden = true;
-            isMusicLoaded = true;
-            console.log('音乐已加载，可以点击播放器播放音乐');
+
+            // 设置当前加载的音乐
+            currentLoadedMusic = currentDraggingKey;
+            console.log(`${state.musicName} 已加载，可以点击播放器播放音乐`);
         }
 
         currentDraggingKey = null;
@@ -164,16 +199,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 点击record player播放音乐
     recordPlayerImg.addEventListener('click', function() {
-        console.log('点击了record player, isMusicLoaded:', isMusicLoaded);
+        console.log('点击了record player, currentLoadedMusic:', currentLoadedMusic);
 
-        if (isMusicLoaded) {
-            if (musicPlayer.paused) {
-                musicPlayer.play().catch(function(error) {
-                    console.error('播放失败:', error);
-                    alert('播放失败: ' + error.message);
-                });
-            } else {
-                musicPlayer.pause();
+        if (currentLoadedMusic && dragStates[currentLoadedMusic]) {
+            const state = dragStates[currentLoadedMusic];
+            const player = state.musicPlayer;
+
+            if (player) {
+                if (player.paused) {
+                    player.play().catch(function(error) {
+                        console.error('播放失败:', error);
+                        alert('播放失败: ' + error.message);
+                    });
+                } else {
+                    player.pause();
+                }
             }
         } else {
             console.log('请先将cpntm或weeknd图片拖动到record player上');
@@ -183,34 +223,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 空格键控制播放/暂停
     document.addEventListener('keydown', function(e) {
-        if (e.code === 'Space' && isMusicLoaded) {
+        if (e.code === 'Space' && currentLoadedMusic) {
             e.preventDefault(); // 防止页面滚动
-            if (musicPlayer.paused) {
-                musicPlayer.play().catch(function(error) {
-                    console.error('播放失败:', error);
-                });
-            } else {
-                musicPlayer.pause();
+            const state = dragStates[currentLoadedMusic];
+            const player = state.musicPlayer;
+
+            if (player) {
+                if (player.paused) {
+                    player.play().catch(function(error) {
+                        console.error('播放失败:', error);
+                    });
+                } else {
+                    player.pause();
+                }
             }
         }
 
-        // ESC键停止播放并弹出所有隐藏的图片
-        if (e.code === 'Escape' && isMusicLoaded) {
-            console.log('按下ESC键，弹出所有图片');
-            musicPlayer.pause();
-            musicPlayer.currentTime = 0; // 重置到开始
+        // ESC键停止播放并弹出当前加载的图片
+        if (e.code === 'Escape' && currentLoadedMusic) {
+            console.log('按下ESC键，弹出图片并停止音乐');
+            const state = dragStates[currentLoadedMusic];
 
-            // 显示所有隐藏的图片
-            Object.keys(dragStates).forEach(function(key) {
-                const state = dragStates[key];
-                if (state.isHidden) {
-                    state.element.style.opacity = '1';
-                    state.element.style.pointerEvents = 'auto';
-                    state.isHidden = false;
-                }
-            });
+            // 停止音乐
+            if (state.musicPlayer) {
+                state.musicPlayer.pause();
+                state.musicPlayer.currentTime = 0;
+            }
 
-            isMusicLoaded = false;
+            // 显示图片
+            if (state.isHidden) {
+                state.element.style.opacity = '1';
+                state.element.style.pointerEvents = 'auto';
+                state.isHidden = false;
+            }
+
+            currentLoadedMusic = null;
         }
     });
 
@@ -228,9 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (weekndImg) {
         weekndImg.addEventListener('error', function() {
             console.error('weeknd.png 图片加载失败，请确认文件名和路径是否正确');
-            console.error('当前期望的文件路径: /home/user/newprototype117/weeknd.png');
             weekndImg.style.display = 'none';
-            alert('weeknd.png 图片加载失败！\n\n请确认：\n1. 文件已上传到项目根目录\n2. 文件名是 "weeknd.png"（小写）\n3. 文件格式是PNG');
         });
         weekndImg.addEventListener('load', function() {
             console.log('weeknd.png 图片加载成功');
@@ -239,8 +284,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('音乐播放器脚本加载完成');
     console.log('使用说明：');
-    console.log('1. 拖动cpntm或weeknd图片到record player上');
-    console.log('2. 点击record player播放/暂停音乐');
-    console.log('3. 播放时按空格键控制播放/暂停');
-    console.log('4. 按ESC键停止并弹出所有图片');
+    console.log('1. 拖动cpntm图片播放 "We Don\'t Talk Anymore"');
+    console.log('2. 拖动weeknd图片播放 "After Hours"');
+    console.log('3. 点击record player播放/暂停当前加载的音乐');
+    console.log('4. 播放时按空格键控制播放/暂停');
+    console.log('5. 按ESC键停止并弹出当前图片');
 });
