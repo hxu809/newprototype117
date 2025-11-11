@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
     musicPlayer.addEventListener('error', function(e) {
         console.error('音频加载错误:', e);
         console.error('错误详情:', musicPlayer.error);
-        alert('音频文件加载失败，请确认 "We Don\'t Talk Anymore.mp3" 文件已上传到项目根目录');
+        alert('音频文件加载失败，请确认 "We_Don\'t_Talk_Anymore.mp3" 文件已上传到项目根目录');
     });
 
     musicPlayer.addEventListener('play', function() {
