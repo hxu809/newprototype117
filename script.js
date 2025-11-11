@@ -214,6 +214,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // 添加图片加载错误处理
+    if (cpntmImg) {
+        cpntmImg.addEventListener('error', function() {
+            console.error('cpntm.png 图片加载失败');
+            cpntmImg.style.display = 'none';
+        });
+        cpntmImg.addEventListener('load', function() {
+            console.log('cpntm.png 图片加载成功');
+        });
+    }
+
+    if (weekndImg) {
+        weekndImg.addEventListener('error', function() {
+            console.error('weeknd.png 图片加载失败，请确认文件名和路径是否正确');
+            console.error('当前期望的文件路径: /home/user/newprototype117/weeknd.png');
+            weekndImg.style.display = 'none';
+            alert('weeknd.png 图片加载失败！\n\n请确认：\n1. 文件已上传到项目根目录\n2. 文件名是 "weeknd.png"（小写）\n3. 文件格式是PNG');
+        });
+        weekndImg.addEventListener('load', function() {
+            console.log('weeknd.png 图片加载成功');
+        });
+    }
+
     console.log('音乐播放器脚本加载完成');
     console.log('使用说明：');
     console.log('1. 拖动cpntm或weeknd图片到record player上');
