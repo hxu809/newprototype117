@@ -2,9 +2,11 @@
 document.addEventListener('DOMContentLoaded', function() {
     const cpntmImg = document.querySelector('.cpntm-img');
     const weekndImg = document.querySelector('.weeknd-img');
+    const beatlesImg = document.querySelector('.beatles-img');
     const recordPlayerImg = document.querySelector('.record-player-img');
     const cpntmMusicPlayer = document.getElementById('music-player-cpntm');
     const weekndMusicPlayer = document.getElementById('music-player-weeknd');
+    const beatlesMusicPlayer = document.getElementById('music-player-beatles');
 
     // 为每个可拖拽元素创建拖拽状态，并关联对应的音乐播放器
     const dragStates = {
@@ -33,16 +35,30 @@ document.addEventListener('DOMContentLoaded', function() {
             xOffset: 0,
             yOffset: 0,
             isHidden: false
+        },
+        beatles: {
+            element: beatlesImg,
+            musicPlayer: beatlesMusicPlayer,
+            musicName: 'Oh! Darling',
+            isDragging: false,
+            currentX: 0,
+            currentY: 0,
+            initialX: 0,
+            initialY: 0,
+            xOffset: 0,
+            yOffset: 0,
+            isHidden: false
         }
     };
 
-    let currentLoadedMusic = null; // 当前加载的音乐类型 ('cpntm' 或 'weeknd')
+    let currentLoadedMusic = null; // 当前加载的音乐类型 ('cpntm', 'weeknd', 或 'beatles')
     let currentDraggingKey = null; // 当前正在拖拽的元素key
 
     // 调试：检查音频是否可以加载
     console.log('音乐播放器初始化:');
     console.log('  - cpntm音乐播放器:', cpntmMusicPlayer);
     console.log('  - weeknd音乐播放器:', weekndMusicPlayer);
+    console.log('  - beatles音乐播放器:', beatlesMusicPlayer);
 
     // 为每个音乐播放器添加事件监听
     function setupMusicPlayer(key, player, musicName) {
@@ -71,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupMusicPlayer('cpntm', cpntmMusicPlayer, 'We Don\'t Talk Anymore');
     setupMusicPlayer('weeknd', weekndMusicPlayer, 'After Hours');
+    setupMusicPlayer('beatles', beatlesMusicPlayer, 'Oh! Darling');
 
     // 为每个可拖拽元素添加事件监听
     function setupDraggable(key, element) {
@@ -92,6 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupDraggable('cpntm', cpntmImg);
     setupDraggable('weeknd', weekndImg);
+    setupDraggable('beatles', beatlesImg);
 
     // 全局事件监听
     document.addEventListener('mousemove', drag);
@@ -282,11 +300,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    if (beatlesImg) {
+        beatlesImg.addEventListener('error', function() {
+            console.error('Beatles.png 图片加载失败，请确认文件名和路径是否正确');
+            beatlesImg.style.display = 'none';
+        });
+        beatlesImg.addEventListener('load', function() {
+            console.log('Beatles.png 图片加载成功');
+        });
+    }
+
     console.log('音乐播放器脚本加载完成');
     console.log('使用说明：');
     console.log('1. 拖动cpntm图片播放 "We Don\'t Talk Anymore"');
     console.log('2. 拖动weeknd图片播放 "After Hours"');
-    console.log('3. 点击record player播放/暂停当前加载的音乐');
-    console.log('4. 播放时按空格键控制播放/暂停');
-    console.log('5. 按ESC键停止并弹出当前图片');
+    console.log('3. 拖动beatles图片播放 "Oh! Darling"');
+    console.log('4. 点击record player播放/暂停当前加载的音乐');
+    console.log('5. 播放时按空格键控制播放/暂停');
+    console.log('6. 按ESC键停止并弹出当前图片');
 });

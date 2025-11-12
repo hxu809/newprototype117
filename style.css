@@ -131,3 +131,29 @@ p {
     cursor: grabbing;
     transform: scale(1.1);
 }
+
+/* Beatles 图片样式 - 放在左下角，与 CPNTM 大小相同 */
+.beatles-img {
+    position: absolute;
+    bottom: 2rem;
+    left: 2rem;
+    max-width: 30%;
+    max-height: 23vh;
+    width: auto;
+    height: auto;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    object-fit: contain;
+    z-index: 10;
+    cursor: move;
+    transition: transform 0.1s ease;
+    user-select: none;
+}
+
+.beatles-img:hover {
+    transform: scale(1.05);
+}
+
+.beatles-img:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+}
