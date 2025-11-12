@@ -60,6 +60,18 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('  - weeknd音乐播放器:', weekndMusicPlayer);
     console.log('  - beatles音乐播放器:', beatlesMusicPlayer);
 
+    // 背景效果管理函数
+    function setBackgroundEffect(key) {
+        // 移除所有背景效果类
+        document.body.classList.remove('playing-cpntm', 'playing-weeknd', 'playing-beatles');
+
+        // 添加对应的背景效果类
+        if (key) {
+            document.body.classList.add(`playing-${key}`);
+            console.log(`已应用 ${key} 的背景效果`);
+        }
+    }
+
     // 为每个音乐播放器添加事件监听
     function setupMusicPlayer(key, player, musicName) {
         if (!player) {
@@ -78,10 +90,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         player.addEventListener('play', function() {
             console.log(`${musicName} 开始播放`);
+            // 应用对应的背景效果
+            setBackgroundEffect(key);
         });
 
         player.addEventListener('pause', function() {
             console.log(`${musicName} 暂停`);
+            // 移除背景效果
+            setBackgroundEffect(null);
         });
     }
 

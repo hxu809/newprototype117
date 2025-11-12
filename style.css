@@ -157,3 +157,107 @@ p {
     cursor: grabbing;
     transform: scale(1.1);
 }
+
+/* ========== 音乐播放时的背景效果 ========== */
+
+/* Weeknd - 流光效果 */
+body.playing-weeknd {
+    background: linear-gradient(
+        135deg,
+        #ff0080 0%,
+        #ff8c00 10%,
+        #40e0d0 20%,
+        #ff0080 30%,
+        #9b30ff 40%,
+        #00ffff 50%,
+        #ff1493 60%,
+        #ffd700 70%,
+        #00ff00 80%,
+        #ff0080 90%,
+        #8a2be2 100%
+    );
+    background-size: 400% 400%;
+    animation: streamingLight 3s ease infinite;
+}
+
+@keyframes streamingLight {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Beatles - 激烈心跳效果 */
+body.playing-beatles {
+    background: radial-gradient(
+        circle at center,
+        #ff0000 0%,
+        #8b0000 30%,
+        #2d0000 60%,
+        #000000 100%
+    );
+    background-size: 200% 200%;
+    animation: heartbeat 0.8s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+    0% {
+        background-size: 200% 200%;
+        filter: brightness(1);
+    }
+    14% {
+        background-size: 220% 220%;
+        filter: brightness(1.3);
+    }
+    28% {
+        background-size: 200% 200%;
+        filter: brightness(1);
+    }
+    42% {
+        background-size: 230% 230%;
+        filter: brightness(1.5);
+    }
+    70% {
+        background-size: 200% 200%;
+        filter: brightness(1);
+    }
+    100% {
+        background-size: 200% 200%;
+        filter: brightness(1);
+    }
+}
+
+/* CPNTM - 舒缓失落效果 */
+body.playing-cpntm {
+    background: linear-gradient(
+        135deg,
+        #1a1a2e 0%,
+        #16213e 25%,
+        #0f3460 50%,
+        #533483 75%,
+        #1a1a2e 100%
+    );
+    background-size: 400% 400%;
+    animation: melancholy 20s ease infinite;
+}
+
+@keyframes melancholy {
+    0% {
+        background-position: 0% 50%;
+        filter: brightness(0.7) saturate(0.8);
+    }
+    50% {
+        background-position: 100% 50%;
+        filter: brightness(0.9) saturate(1);
+    }
+    100% {
+        background-position: 0% 50%;
+        filter: brightness(0.7) saturate(0.8);
+    }
+}
+
