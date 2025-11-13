@@ -316,11 +316,12 @@ body.playing-cpntm {
 /* 粒子效果样式 */
 .particle {
     position: fixed;
-    font-size: 2rem;
+    font-size: 3.5rem;
     pointer-events: none;
     user-select: none;
     z-index: 15;
     will-change: transform, opacity;
     text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    transition: font-size 0.1s ease;
 }
 

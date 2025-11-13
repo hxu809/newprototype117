@@ -33,9 +33,24 @@ document.addEventListener('DOMContentLoaded', function() {
     let particleAnimationId = null;
     let particleGenerationInterval = null;
 
+    // 获取当前音频强度
+    function getAudioIntensity() {
+        if (!analyserNode || !dataArray) return 0.5;
+
+        analyserNode.getByteFrequencyData(dataArray);
+
+        // 计算平均强度
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
+        }
+        const average = sum / bufferLength / 255; // 归一化到0-1
+        return average;
+    }
+
     // 粒子类
     class Particle {
-        constructor(x, y, emoji, type) {
+        constructor(x, y, emoji, type, audioIntensity) {
             this.x = x;
             this.y = y;
             this.emoji = emoji;
@@ -47,40 +62,50 @@ document.addEventListener('DOMContentLoaded', function() {
             this.element.style.top = y + 'px';
             document.body.appendChild(this.element);
 
-            // 根据类型设置不同的物理属性
+            // 基础缩放（所有类型都有）
+            this.baseScale = 0.8 + Math.random() * 0.4; // 0.8-1.2
+            this.scale = this.baseScale;
+
+            // 根据类型设置不同的物理属性，并受音频强度影响
+            const intensityMultiplier = 0.5 + audioIntensity * 1.5; // 0.5-2.0
+
             if (type === 'cpntm') {
                 // 流泪效果：从上方随机位置落下
-                this.vx = (Math.random() - 0.5) * 2; // 轻微水平移动
-                this.vy = Math.random() * 2 + 1; // 向下的初速度
-                this.gravity = 0.3; // 重力加速度
+                this.vx = (Math.random() - 0.5) * 2 * intensityMultiplier;
+                this.vy = (Math.random() * 2 + 1) * intensityMultiplier;
+                this.gravity = 0.3;
                 this.opacity = 1;
-                this.life = 100; // 生命周期
+                this.life = 100;
             } else if (type === 'weeknd') {
                 // 爆炸效果：从中心向外爆炸
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 8 + 4;
+                const speed = (Math.random() * 8 + 4) * intensityMultiplier;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
-                this.gravity = 0.2; // 轻微重力
-                this.friction = 0.98; // 摩擦力（减速）
+                this.gravity = 0.2;
+                this.friction = 0.98;
                 this.opacity = 1;
                 this.life = 100;
-                this.rotation = Math.random() * 360; // 旋转角度
-                this.rotationSpeed = (Math.random() - 0.5) * 10; // 旋转速度
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = (Math.random() - 0.5) * 10 * intensityMultiplier;
             } else if (type === 'beatles') {
                 // 爱心效果：向上飘散
-                this.vx = (Math.random() - 0.5) * 3;
-                this.vy = -(Math.random() * 3 + 2); // 向上飘
-                this.gravity = -0.05; // 轻微向上的力
+                this.vx = (Math.random() - 0.5) * 3 * intensityMultiplier;
+                this.vy = -(Math.random() * 3 + 2) * intensityMultiplier;
+                this.gravity = -0.05;
                 this.opacity = 1;
                 this.life = 120;
-                this.scale = Math.random() * 0.5 + 0.5; // 随机大小
-                this.wobble = Math.random() * Math.PI * 2; // 摆动相位
-                this.wobbleSpeed = 0.1;
+                this.wobble = Math.random() * Math.PI * 2;
+                this.wobbleSpeed = 0.1 * intensityMultiplier;
             }
         }
 
         update() {
+            // 获取当前音频强度用于实时缩放
+            const currentIntensity = getAudioIntensity();
+            const audioScale = 0.8 + currentIntensity * 0.6; // 0.8-1.4的跳动范围
+            this.scale = this.baseScale * audioScale;
+
             // 更新速度
             if (this.type === 'cpntm') {
                 this.vy += this.gravity;
@@ -104,14 +129,15 @@ document.addEventListener('DOMContentLoaded', function() {
             this.life--;
             this.opacity = this.life / 100;
 
-            // 更新DOM元素位置
+            // 更新DOM元素位置和样式
             this.element.style.left = this.x + 'px';
             this.element.style.top = this.y + 'px';
             this.element.style.opacity = this.opacity;
 
+            // 应用缩放和旋转（所有类型都应用缩放）
             if (this.type === 'weeknd') {
-                this.element.style.transform = `rotate(${this.rotation}deg)`;
-            } else if (this.type === 'beatles') {
+                this.element.style.transform = `scale(${this.scale}) rotate(${this.rotation}deg)`;
+            } else {
                 this.element.style.transform = `scale(${this.scale})`;
             }
 
@@ -140,6 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 生成粒子
     function generateParticle(type) {
         const pos = getRecordPlayerPosition();
+        const audioIntensity = getAudioIntensity();
         let x, y, emoji;
 
         if (type === 'cpntm') {
@@ -161,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
             emoji = ['❤️', '💕', '💖', '💗'][Math.floor(Math.random() * 4)];
         }
 
-        const particle = new Particle(x, y, emoji, type);
+        const particle = new Particle(x, y, emoji, type, audioIntensity);
         particles.push(particle);
     }
 
@@ -183,22 +210,34 @@ document.addEventListener('DOMContentLoaded', function() {
     function startParticles(type) {
         stopParticles(); // 先停止之前的
 
-        // 开始生成粒子
+        // 开始生成粒子，根据音频强度动态调整生成数量
         if (type === 'cpntm') {
             particleGenerationInterval = setInterval(() => {
-                generateParticle(type);
-            }, 200); // 每200ms生成一个泪珠
-        } else if (type === 'weeknd') {
-            particleGenerationInterval = setInterval(() => {
-                // 每次生成多个粒子形成爆炸效果
-                for (let i = 0; i < 3; i++) {
+                const intensity = getAudioIntensity();
+                // 高音强度时生成更多泪珠
+                const count = intensity > 0.6 ? 2 : 1;
+                for (let i = 0; i < count; i++) {
                     generateParticle(type);
                 }
-            }, 150); // 更频繁的爆炸
+            }, 200);
+        } else if (type === 'weeknd') {
+            particleGenerationInterval = setInterval(() => {
+                const intensity = getAudioIntensity();
+                // 根据音频强度生成2-5个粒子
+                const count = Math.floor(2 + intensity * 3);
+                for (let i = 0; i < count; i++) {
+                    generateParticle(type);
+                }
+            }, 150);
         } else if (type === 'beatles') {
             particleGenerationInterval = setInterval(() => {
-                generateParticle(type);
-            }, 180); // 每180ms生成一个爱心
+                const intensity = getAudioIntensity();
+                // 高音强度时生成更多爱心
+                const count = intensity > 0.5 ? 2 : 1;
+                for (let i = 0; i < count; i++) {
+                    generateParticle(type);
+                }
+            }, 180);
         }
 
         // 启动粒子动画循环
