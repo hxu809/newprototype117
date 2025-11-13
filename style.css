@@ -26,14 +26,14 @@ body {
     animation: gradient 15s ease infinite;
 }
 
-/* 音频可视化Canvas */
+/* 音频可视化Canvas - 放在最底层作为背景 */
 #visualizer-canvas {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
+    z-index: 0;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.5s ease;
@@ -92,6 +92,8 @@ p {
     object-fit: contain;
     cursor: pointer;
     transition: transform 0.2s ease;
+    position: relative;
+    z-index: 5;
 }
 
 .record-player-img:hover {
