@@ -8,6 +8,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const weekndMusicPlayer = document.getElementById('music-player-weeknd');
     const beatlesMusicPlayer = document.getElementById('music-player-beatles');
     const nowPlayingDiv = document.getElementById('now-playing');
+    const canvas = document.getElementById('visualizer-canvas');
+    const canvasCtx = canvas.getContext('2d');
+
+    // 设置canvas尺寸
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // 音频可视化相关变量
+    let audioContext = null;
+    let analyserNode = null;
+    let dataArray = null;
+    let bufferLength = 0;
+    let animationId = null;
+    let currentVisualizerType = null;
+    const audioSources = {}; // 存储每个播放器的音频源
 
     // 为每个可拖拽元素创建拖拽状态，并关联对应的音乐播放器
     const dragStates = {
@@ -90,6 +109,142 @@ document.addEventListener('DOMContentLoaded', function() {
         nowPlayingDiv.classList.add('hide');
     }
 
+    // 初始化音频上下文和分析器
+    function initAudioContext(key, player) {
+        // 初始化AudioContext（只创建一次）
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        // 初始化Analyser节点（只创建一次）
+        if (!analyserNode) {
+            analyserNode = audioContext.createAnalyser();
+            analyserNode.fftSize = 256;
+            bufferLength = analyserNode.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
+            analyserNode.connect(audioContext.destination);
+        }
+
+        // 为每个播放器创建独立的音频源（每个播放器只创建一次）
+        if (!audioSources[key]) {
+            const source = audioContext.createMediaElementSource(player);
+            source.connect(analyserNode);
+            audioSources[key] = source;
+            console.log(`已为 ${key} 创建音频源`);
+        }
+    }
+
+    // Weeknd可视化 - 彩色频谱条形图
+    function drawWeekndVisualizer() {
+        analyserNode.getByteFrequencyData(dataArray);
+
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const barWidth = (canvas.width / bufferLength) * 2.5;
+        let barHeight;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+            barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+
+            const hue = (i / bufferLength) * 360;
+            canvasCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+            canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+            x += barWidth + 1;
+        }
+    }
+
+    // Beatles可视化 - 圆形脉冲波形
+    function drawBeatlesVisualizer() {
+        analyserNode.getByteFrequencyData(dataArray);
+
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = Math.min(canvas.width, canvas.height) / 4;
+
+        for (let i = 0; i < bufferLength; i++) {
+            const angle = (i / bufferLength) * Math.PI * 2;
+            const amplitude = (dataArray[i] / 255) * radius;
+            const x = centerX + Math.cos(angle) * (radius + amplitude);
+            const y = centerY + Math.sin(angle) * (radius + amplitude);
+
+            const intensity = dataArray[i] / 255;
+            canvasCtx.fillStyle = `rgba(255, ${50 + intensity * 100}, 0, ${0.5 + intensity * 0.5})`;
+            canvasCtx.beginPath();
+            canvasCtx.arc(x, y, 3 + intensity * 5, 0, Math.PI * 2);
+            canvasCtx.fill();
+        }
+    }
+
+    // CPNTM可视化 - 舒缓波形图
+    function drawCpntmVisualizer() {
+        analyserNode.getByteTimeDomainData(dataArray);
+
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        canvasCtx.lineWidth = 3;
+        canvasCtx.strokeStyle = 'rgba(100, 150, 255, 0.8)';
+        canvasCtx.beginPath();
+
+        const sliceWidth = canvas.width / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = (v * canvas.height) / 2;
+
+            if (i === 0) {
+                canvasCtx.moveTo(x, y);
+            } else {
+                canvasCtx.lineTo(x, y);
+            }
+
+            x += sliceWidth;
+        }
+
+        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+        canvasCtx.stroke();
+    }
+
+    // 启动可视化
+    function startVisualizer(type) {
+        if (!analyserNode) return;
+
+        currentVisualizerType = type;
+        canvas.classList.add('active');
+
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+
+            if (currentVisualizerType === 'weeknd') {
+                drawWeekndVisualizer();
+            } else if (currentVisualizerType === 'beatles') {
+                drawBeatlesVisualizer();
+            } else if (currentVisualizerType === 'cpntm') {
+                drawCpntmVisualizer();
+            }
+        }
+
+        animate();
+    }
+
+    // 停止可视化
+    function stopVisualizer() {
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        currentVisualizerType = null;
+        canvas.classList.remove('active');
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
     // 为每个音乐播放器添加事件监听
     function setupMusicPlayer(key, player, musicName) {
         if (!player) {
@@ -108,10 +263,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         player.addEventListener('play', function() {
             console.log(`${musicName} 开始播放`);
+
+            // 初始化音频上下文（只在第一次播放时）
+            try {
+                if (!audioSources[key]) {
+                    initAudioContext(key, player);
+                }
+            } catch (error) {
+                console.error('音频上下文初始化失败:', error);
+            }
+
             // 应用对应的背景效果
             setBackgroundEffect(key);
             // 显示Now Playing信息
             showNowPlaying(musicName);
+            // 启动可视化
+            startVisualizer(key);
         });
 
         player.addEventListener('pause', function() {
@@ -120,6 +287,8 @@ document.addEventListener('DOMContentLoaded', function() {
             setBackgroundEffect(null);
             // 隐藏Now Playing信息
             hideNowPlaying();
+            // 停止可视化
+            stopVisualizer();
         });
     }
 
