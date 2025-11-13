@@ -313,3 +313,14 @@ body.playing-cpntm {
     transform: translateX(-50%) translateY(-20px);
 }
 
+/* 粒子效果样式 */
+.particle {
+    position: fixed;
+    font-size: 2rem;
+    pointer-events: none;
+    user-select: none;
+    z-index: 15;
+    will-change: transform, opacity;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+

@@ -28,6 +28,202 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentVisualizerType = null;
     const audioSources = {}; // 存储每个播放器的音频源
 
+    // ========== 粒子系统 ==========
+    const particles = [];
+    let particleAnimationId = null;
+    let particleGenerationInterval = null;
+
+    // 粒子类
+    class Particle {
+        constructor(x, y, emoji, type) {
+            this.x = x;
+            this.y = y;
+            this.emoji = emoji;
+            this.type = type;
+            this.element = document.createElement('div');
+            this.element.className = 'particle';
+            this.element.textContent = emoji;
+            this.element.style.left = x + 'px';
+            this.element.style.top = y + 'px';
+            document.body.appendChild(this.element);
+
+            // 根据类型设置不同的物理属性
+            if (type === 'cpntm') {
+                // 流泪效果：从上方随机位置落下
+                this.vx = (Math.random() - 0.5) * 2; // 轻微水平移动
+                this.vy = Math.random() * 2 + 1; // 向下的初速度
+                this.gravity = 0.3; // 重力加速度
+                this.opacity = 1;
+                this.life = 100; // 生命周期
+            } else if (type === 'weeknd') {
+                // 爆炸效果：从中心向外爆炸
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 4;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.gravity = 0.2; // 轻微重力
+                this.friction = 0.98; // 摩擦力（减速）
+                this.opacity = 1;
+                this.life = 100;
+                this.rotation = Math.random() * 360; // 旋转角度
+                this.rotationSpeed = (Math.random() - 0.5) * 10; // 旋转速度
+            } else if (type === 'beatles') {
+                // 爱心效果：向上飘散
+                this.vx = (Math.random() - 0.5) * 3;
+                this.vy = -(Math.random() * 3 + 2); // 向上飘
+                this.gravity = -0.05; // 轻微向上的力
+                this.opacity = 1;
+                this.life = 120;
+                this.scale = Math.random() * 0.5 + 0.5; // 随机大小
+                this.wobble = Math.random() * Math.PI * 2; // 摆动相位
+                this.wobbleSpeed = 0.1;
+            }
+        }
+
+        update() {
+            // 更新速度
+            if (this.type === 'cpntm') {
+                this.vy += this.gravity;
+                this.x += this.vx;
+                this.y += this.vy;
+            } else if (this.type === 'weeknd') {
+                this.vx *= this.friction;
+                this.vy *= this.friction;
+                this.vy += this.gravity;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.rotation += this.rotationSpeed;
+            } else if (this.type === 'beatles') {
+                this.vy += this.gravity;
+                this.wobble += this.wobbleSpeed;
+                this.x += this.vx + Math.sin(this.wobble) * 0.5; // 添加摆动
+                this.y += this.vy;
+            }
+
+            // 更新生命周期和透明度
+            this.life--;
+            this.opacity = this.life / 100;
+
+            // 更新DOM元素位置
+            this.element.style.left = this.x + 'px';
+            this.element.style.top = this.y + 'px';
+            this.element.style.opacity = this.opacity;
+
+            if (this.type === 'weeknd') {
+                this.element.style.transform = `rotate(${this.rotation}deg)`;
+            } else if (this.type === 'beatles') {
+                this.element.style.transform = `scale(${this.scale})`;
+            }
+
+            // 检查是否超出屏幕或生命周期结束
+            return this.life > 0 &&
+                   this.x > -100 && this.x < window.innerWidth + 100 &&
+                   this.y > -100 && this.y < window.innerHeight + 100;
+        }
+
+        destroy() {
+            this.element.remove();
+        }
+    }
+
+    // 获取record player的位置
+    function getRecordPlayerPosition() {
+        const rect = recordPlayerImg.getBoundingClientRect();
+        return {
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2,
+            width: rect.width,
+            height: rect.height
+        };
+    }
+
+    // 生成粒子
+    function generateParticle(type) {
+        const pos = getRecordPlayerPosition();
+        let x, y, emoji;
+
+        if (type === 'cpntm') {
+            // 流泪：从record player上方随机位置生成
+            x = pos.x + (Math.random() - 0.5) * pos.width * 0.8;
+            y = pos.y - pos.height * 0.3;
+            emoji = Math.random() > 0.5 ? '😢' : '💧';
+        } else if (type === 'weeknd') {
+            // 爆炸：从record player中心生成
+            x = pos.x;
+            y = pos.y;
+            emoji = ['💥', '⚡', '✨', '🔥'][Math.floor(Math.random() * 4)];
+        } else if (type === 'beatles') {
+            // 爱心：从record player周围生成
+            const angle = Math.random() * Math.PI * 2;
+            const radius = pos.width * 0.3;
+            x = pos.x + Math.cos(angle) * radius;
+            y = pos.y + Math.sin(angle) * radius;
+            emoji = ['❤️', '💕', '💖', '💗'][Math.floor(Math.random() * 4)];
+        }
+
+        const particle = new Particle(x, y, emoji, type);
+        particles.push(particle);
+    }
+
+    // 更新所有粒子
+    function updateParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            if (!particles[i].update()) {
+                particles[i].destroy();
+                particles.splice(i, 1);
+            }
+        }
+
+        if (particles.length > 0 || particleGenerationInterval) {
+            particleAnimationId = requestAnimationFrame(updateParticles);
+        }
+    }
+
+    // 启动粒子系统
+    function startParticles(type) {
+        stopParticles(); // 先停止之前的
+
+        // 开始生成粒子
+        if (type === 'cpntm') {
+            particleGenerationInterval = setInterval(() => {
+                generateParticle(type);
+            }, 200); // 每200ms生成一个泪珠
+        } else if (type === 'weeknd') {
+            particleGenerationInterval = setInterval(() => {
+                // 每次生成多个粒子形成爆炸效果
+                for (let i = 0; i < 3; i++) {
+                    generateParticle(type);
+                }
+            }, 150); // 更频繁的爆炸
+        } else if (type === 'beatles') {
+            particleGenerationInterval = setInterval(() => {
+                generateParticle(type);
+            }, 180); // 每180ms生成一个爱心
+        }
+
+        // 启动粒子动画循环
+        if (!particleAnimationId) {
+            updateParticles();
+        }
+    }
+
+    // 停止粒子系统
+    function stopParticles() {
+        if (particleGenerationInterval) {
+            clearInterval(particleGenerationInterval);
+            particleGenerationInterval = null;
+        }
+
+        // 清除所有现有粒子
+        particles.forEach(p => p.destroy());
+        particles.length = 0;
+
+        if (particleAnimationId) {
+            cancelAnimationFrame(particleAnimationId);
+            particleAnimationId = null;
+        }
+    }
+
     // 为每个可拖拽元素创建拖拽状态，并关联对应的音乐播放器
     const dragStates = {
         cpntm: {
@@ -279,6 +475,8 @@ document.addEventListener('DOMContentLoaded', function() {
             showNowPlaying(musicName);
             // 启动可视化
             startVisualizer(key);
+            // 启动粒子系统
+            startParticles(key);
         });
 
         player.addEventListener('pause', function() {
@@ -289,6 +487,8 @@ document.addEventListener('DOMContentLoaded', function() {
             hideNowPlaying();
             // 停止可视化
             stopVisualizer();
+            // 停止粒子系统
+            stopParticles();
         });
     }
 
