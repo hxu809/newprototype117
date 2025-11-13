@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const cpntmMusicPlayer = document.getElementById('music-player-cpntm');
     const weekndMusicPlayer = document.getElementById('music-player-weeknd');
     const beatlesMusicPlayer = document.getElementById('music-player-beatles');
+    const nowPlayingDiv = document.getElementById('now-playing');
 
     // 为每个可拖拽元素创建拖拽状态，并关联对应的音乐播放器
     const dragStates = {
@@ -72,6 +73,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // 显示Now Playing信息
+    function showNowPlaying(musicName) {
+        if (!nowPlayingDiv) return;
+
+        nowPlayingDiv.textContent = `Now Playing: ${musicName}`;
+        nowPlayingDiv.classList.remove('hide');
+        nowPlayingDiv.classList.add('show');
+    }
+
+    // 隐藏Now Playing信息
+    function hideNowPlaying() {
+        if (!nowPlayingDiv) return;
+
+        nowPlayingDiv.classList.remove('show');
+        nowPlayingDiv.classList.add('hide');
+    }
+
     // 为每个音乐播放器添加事件监听
     function setupMusicPlayer(key, player, musicName) {
         if (!player) {
@@ -92,12 +110,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`${musicName} 开始播放`);
             // 应用对应的背景效果
             setBackgroundEffect(key);
+            // 显示Now Playing信息
+            showNowPlaying(musicName);
         });
 
         player.addEventListener('pause', function() {
             console.log(`${musicName} 暂停`);
             // 移除背景效果
             setBackgroundEffect(null);
+            // 隐藏Now Playing信息
+            hideNowPlaying();
         });
     }
 
